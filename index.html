@@ -533,6 +533,9 @@
 
   <div class="memo">
     <b>MEMORANDUM:</b> Management requires you to clear 5 Truth Audits to unlock your weekend clearance. Select a file (1–42) to begin.
+    <div style="text-align:right;margin:-8px 0 14px;">
+      <a href="#" id="new-audit-link" style="font-family:'Special Elite',monospace;font-size:11px;color:var(--ink-soft);">Start a new audit →</a>
+    </div>
   </div>
 
   <div class="progress-wrap">
@@ -688,18 +691,49 @@
     measurementId: "G-VSZ08EGQER"
   };
 
-  const shuffledQuestions = shuffle(QUESTIONS);
-  const fileQuestion = {}; // number -> question text
-  for(let n = 1; n <= 42; n++){
-    fileQuestion[n] = shuffledQuestions[n - 1];
+  // const shuffledQuestions = shuffle(QUESTIONS);
+  // const fileQuestion = {}; // number -> question text
+  // for(let n = 1; n <= 42; n++){
+  //   fileQuestion[n] = shuffledQuestions[n - 1];
+  // }
+
+  // const state = {
+  //   approved: 0,
+  //   tileStatus: {}, // number -> 'approved' | 'denied'
+  //   activeFile: null
+  // };
+  const SAVE_KEY = 'truth-audit-save';
+
+  function loadSave(){
+    try{ return JSON.parse(localStorage.getItem(SAVE_KEY)); }
+    catch(e){ return null; }
+  }
+  function writeSave(){
+    try{
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        fileQuestion, tileStatus: state.tileStatus, approved: state.approved
+      }));
+    }catch(e){ /* ignore */ }
+  }
+  function clearSave(){
+    try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
   }
 
-  const state = {
-    approved: 0,
-    tileStatus: {}, // number -> 'approved' | 'denied'
-    activeFile: null
-  };
+  const saved = loadSave();
+  let fileQuestion, state;
 
+  // A finished game (5 approved) never gets restored — it auto-resets
+  // to a fresh board instead, per your "auto reset when finished" ask.
+  if(saved && saved.approved < 5){
+    fileQuestion = saved.fileQuestion;
+    state = { approved: saved.approved, tileStatus: saved.tileStatus, activeFile: null };
+  }else{
+    clearSave();
+    const shuffledQuestions = shuffle(QUESTIONS);
+    fileQuestion = {};
+    for(let n = 1; n <= 42; n++){ fileQuestion[n] = shuffledQuestions[n - 1]; }
+    state = { approved: 0, tileStatus: {}, activeFile: null };
+  }
   // ---------- SHARED LIVE-SYNC BACKEND (Firebase Realtime Database) ----------
   let fbReady = false;
   let db = null;
@@ -757,6 +791,7 @@
 
   function buildGrid(){
     grid.innerHTML = '';
+   
     for(let n = 1; n <= 42; n++){
       const tile = document.createElement('button');
       tile.className = 'tile';
@@ -766,6 +801,9 @@
       tile.setAttribute('aria-label', 'Open case file ' + n);
       tile.addEventListener('click', () => openFile(n));
       grid.appendChild(tile);
+      if(state.tileStatus[n]){
+        paintTile(n, state.tileStatus[n]);
+      }
     }
   }
 
@@ -816,11 +854,12 @@
     updateProgress();
     closeModal();
     logEvent(n, 'approved');
+    writeSave();
     if(state.approved >= 5){
       setTimeout(showWin, 300);
     }
   });
-
+  
   btnDeny.addEventListener('click', () => {
     const n = state.activeFile;
     if(n == null) return;
@@ -828,6 +867,7 @@
     paintTile(n, 'denied');
     closeModal();
     logEvent(n, 'denied');
+    writeSave();
     showToast('Penalty added: You owe management one coffee.');
   });
 
@@ -890,12 +930,14 @@
   }
 
   function showWin(){
+    clearSave();
     winOverlay.classList.add('show');
     makeConfetti();
     confettiRunning = true;
     requestAnimationFrame(drawConfetti);
   }
 
+  
   resetBtn.addEventListener('click', () => {
     state.approved = 0;
     state.tileStatus = {};
