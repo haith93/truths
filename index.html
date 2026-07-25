@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>The Official 1-42 Truth Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Special+Elite&family=Archivo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --paper:#F2E8D0;
+    --paper-dark:#E7D9AF;
+    --manila:#DDBD7C;
+    --manila-dark:#C9A45E;
+    --navy:#1F3A5F;
+    --navy-dark:#14283F;
+    --approved:#1E8E5A;
+    --approved-dark:#146B44;
+    --denied:#C23B32;
+    --denied-dark:#98261F;
+    --gold:#D4A017;
+    --ink:#2B2A28;
+    --ink-soft:#5B564C;
+    --radius:14px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      linear-gradient(180deg, rgba(31,58,95,0.04), rgba(31,58,95,0.04)),
+      repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(31,58,95,0.05) 28px),
+      var(--paper);
+    color:var(--ink);
+    font-family:'Archivo', system-ui, sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  .app{
+    width:100%;
+    max-width:480px;
+    min-height:100vh;
+    padding:18px 16px 40px;
+    position:relative;
+  }
+
+  /* ---------- HEADER / LETTERHEAD ---------- */
+  header{
+    position:relative;
+    text-align:center;
+    padding:14px 10px 16px;
+    border-bottom:3px double var(--navy);
+    margin-bottom:14px;
+  }
+  .confidential-tag{
+    position:absolute;
+    top:-10px;
+    right:0;
+    background:var(--denied);
+    color:#fff;
+    font-family:'Special Elite', monospace;
+    font-size:10px;
+    letter-spacing:1.5px;
+    padding:4px 8px;
+    transform:rotate(4deg);
+    border-radius:3px;
+    box-shadow:0 2px 4px rgba(0,0,0,0.25);
+  }
+  .eyebrow{
+    font-family:'Special Elite', monospace;
+    font-size:11px;
+    letter-spacing:2px;
+    color:var(--navy);
+    text-transform:uppercase;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+  h1{
+    font-family:'Anton', sans-serif;
+    font-weight:400;
+    font-size:clamp(26px, 8vw, 34px);
+    letter-spacing:0.5px;
+    color:var(--navy-dark);
+    margin:6px 0 4px;
+    line-height:1.05;
+    text-transform:uppercase;
+  }
+  .subtitle{
+    font-family:'Special Elite', monospace;
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+
+  /* ---------- MEMO / INSTRUCTIONS ---------- */
+  .memo{
+    background:var(--paper-dark);
+    border:1px dashed var(--navy);
+    border-radius:8px;
+    padding:12px 14px;
+    margin-bottom:14px;
+    font-family:'Special Elite', monospace;
+    font-size:12.5px;
+    line-height:1.55;
+    color:var(--ink);
+  }
+  .memo b{color:var(--navy-dark);}
+
+  /* ---------- PROGRESS ---------- */
+  .progress-wrap{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+    background:#fff;
+    border:1px solid var(--manila-dark);
+    border-radius:10px;
+    padding:10px 12px;
+    box-shadow:0 2px 0 rgba(0,0,0,0.05);
+  }
+  .progress-label{
+    font-family:'Special Elite', monospace;
+    font-size:11px;
+    letter-spacing:1px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+  }
+  .progress-count{
+    font-family:'Anton', sans-serif;
+    font-size:20px;
+    color:var(--approved-dark);
+  }
+  .progress-dots{
+    display:flex;
+    gap:5px;
+  }
+  .progress-dots span{
+    width:16px;height:20px;
+    border-radius:2px 2px 0 0;
+    background:var(--paper-dark);
+    border:1.5px solid var(--manila-dark);
+    transition:background .25s ease, border-color .25s ease, transform .25s ease;
+  }
+  .progress-dots span.filled{
+    background:var(--approved);
+    border-color:var(--approved-dark);
+    transform:translateY(-2px);
+  }
+
+  /* ---------- GRID ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(6, 1fr);
+    gap:8px;
+  }
+  .tile{
+    position:relative;
+    aspect-ratio:1/1;
+    border:none;
+    border-radius:6px 6px 4px 4px;
+    background:linear-gradient(180deg, var(--manila), var(--manila-dark));
+    box-shadow:0 3px 0 rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.35);
+    font-family:'Anton', sans-serif;
+    font-size:18px;
+    color:var(--navy-dark);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    overflow:hidden;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .tile::before{
+    content:'';
+    position:absolute;
+    top:0; left:14%;
+    width:36%;
+    height:6px;
+    background:var(--paper);
+    border-radius:0 0 4px 4px;
+    opacity:.55;
+  }
+  .tile:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,0.18);}
+  .tile:focus-visible{outline:3px solid var(--navy); outline-offset:2px;}
+
+  .tile.approved{
+    background:linear-gradient(180deg,#eafff4,#d7f5e4);
+    color:var(--approved-dark);
+    cursor:default;
+    pointer-events:none;
+  }
+  .tile.denied{
+    background:linear-gradient(180deg,#fff0ee,#fbdcd8);
+    color:var(--denied-dark);
+    cursor:default;
+    pointer-events:none;
+  }
+  .stamp-mark{
+    font-family:'Anton', sans-serif;
+    font-size:15px;
+    letter-spacing:0.5px;
+    border:2px solid currentColor;
+    border-radius:5px;
+    padding:1px 3px;
+    transform:rotate(-10deg) scale(0);
+    animation:stampIn .35s cubic-bezier(.3,1.6,.5,1) forwards;
+  }
+
+  @keyframes stampIn{
+    0%{transform:rotate(-18deg) scale(2.4); opacity:0;}
+    65%{transform:rotate(-8deg) scale(0.9); opacity:1;}
+    100%{transform:rotate(-10deg) scale(1); opacity:1;}
+  }
+
+  /* ---------- MODAL ---------- */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(20,25,35,0.55);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:50;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease;
+  }
+  .overlay.show{opacity:1; pointer-events:auto;}
+
+  .case-file{
+    background:#fffdf7;
+    width:100%;
+    max-width:360px;
+    border-radius:10px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.35);
+    transform:translateY(16px) scale(.96);
+    transition:transform .25s cubic-bezier(.2,.9,.3,1.2);
+    overflow:hidden;
+  }
+  .overlay.show .case-file{transform:translateY(0) scale(1);}
+
+  .case-tab{
+    background:var(--navy);
+    color:#fff;
+    font-family:'Special Elite', monospace;
+    font-size:11px;
+    letter-spacing:1.5px;
+    padding:10px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .case-tab .file-no{color:var(--gold);}
+
+  .case-body{
+    padding:22px 20px 20px;
+  }
+  .case-body .label{
+    font-family:'Special Elite', monospace;
+    font-size:10.5px;
+    letter-spacing:1.5px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    margin-bottom:10px;
+    display:block;
+  }
+  .question-text{
+    font-family:'Archivo', sans-serif;
+    font-weight:700;
+    font-size:18px;
+    line-height:1.35;
+    color:var(--ink);
+    margin-bottom:22px;
+  }
+  .btn-row{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .btn{
+    border:none;
+    border-radius:8px;
+    padding:13px 14px;
+    font-family:'Archivo', sans-serif;
+    font-weight:800;
+    font-size:13.5px;
+    letter-spacing:0.3px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    transition:transform .1s ease, filter .15s ease;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-approve{
+    background:var(--approved);
+    color:#fff;
+    box-shadow:0 3px 0 var(--approved-dark);
+  }
+  .btn-deny{
+    background:#fff;
+    color:var(--denied-dark);
+    border:2px solid var(--denied);
+  }
+  .btn:focus-visible{outline:3px solid var(--navy); outline-offset:2px;}
+
+  /* ---------- TOAST ---------- */
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:24px;
+    transform:translate(-50%, 30px);
+    background:#fff;
+    border-left:5px solid var(--denied);
+    border-radius:6px;
+    padding:12px 16px;
+    font-family:'Special Elite', monospace;
+    font-size:12.5px;
+    color:var(--ink);
+    box-shadow:0 10px 30px rgba(0,0,0,0.25);
+    max-width:90vw;
+    z-index:60;
+    opacity:0;
+    transition:opacity .25s ease, transform .25s ease;
+    pointer-events:none;
+  }
+  .toast.show{opacity:1; transform:translate(-50%, 0);}
+
+  /* ---------- WIN SCREEN ---------- */
+  .win-overlay{
+    position:fixed; inset:0;
+    background:radial-gradient(circle at 50% 20%, #24467a, var(--navy-dark) 70%);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:30px 24px;
+    z-index:100;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .3s ease;
+  }
+  .win-overlay.show{opacity:1; pointer-events:auto;}
+  #confetti-canvas{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+  }
+  .win-stamp{
+    font-family:'Anton', sans-serif;
+    font-size:clamp(30px, 10vw, 42px);
+    color:var(--approved);
+    border:5px solid var(--approved);
+    border-radius:10px;
+    padding:10px 18px;
+    letter-spacing:2px;
+    transform:rotate(-8deg) scale(0);
+    animation:stampIn .5s .1s cubic-bezier(.3,1.6,.5,1) forwards;
+    position:relative;
+    z-index:2;
+    text-transform:uppercase;
+  }
+  .win-text{
+    position:relative;
+    z-index:2;
+    color:#fff;
+    font-family:'Archivo', sans-serif;
+    font-size:14.5px;
+    line-height:1.6;
+    max-width:320px;
+    margin-top:22px;
+    opacity:0;
+    animation:fadeUp .5s .5s ease forwards;
+  }
+  .win-text b{color:var(--gold);}
+  @keyframes fadeUp{
+    from{opacity:0; transform:translateY(10px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+  .reset-btn{
+    position:relative;
+    z-index:2;
+    margin-top:24px;
+    background:transparent;
+    border:1.5px solid rgba(255,255,255,0.4);
+    color:#fff;
+    font-family:'Special Elite', monospace;
+    font-size:11px;
+    letter-spacing:1px;
+    padding:9px 16px;
+    border-radius:6px;
+    cursor:pointer;
+    opacity:0;
+    animation:fadeUp .5s .8s ease forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+  }
+
+  /* ---------- DASHBOARD ---------- */
+  .dash{
+    max-width:480px;
+    margin:0 auto;
+    padding:18px 16px 40px;
+  }
+  .dash-header{
+    border-bottom:3px double var(--navy);
+    padding-bottom:14px;
+    margin-bottom:16px;
+  }
+  .dash-header .eyebrow{
+    font-family:'Special Elite', monospace;
+    font-size:11px;
+    letter-spacing:2px;
+    color:var(--navy);
+    text-transform:uppercase;
+  }
+  .dash-header h1{
+    font-family:'Anton', sans-serif;
+    font-weight:400;
+    font-size:24px;
+    color:var(--navy-dark);
+    margin:6px 0 0;
+    text-transform:uppercase;
+  }
+  .dash-note{
+    font-family:'Special Elite', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:4px;
+  }
+  .dash-summary{
+    display:flex;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .dash-summary .stat{
+    flex:1;
+    background:#fff;
+    border:1px solid var(--manila-dark);
+    border-radius:8px;
+    padding:10px;
+    text-align:center;
+  }
+  .dash-summary .stat .num{
+    font-family:'Anton', sans-serif;
+    font-size:22px;
+  }
+  .dash-summary .stat.approved .num{color:var(--approved-dark);}
+  .dash-summary .stat.denied .num{color:var(--denied-dark);}
+  .dash-summary .stat.pending .num{color:var(--ink-soft);}
+  .dash-summary .stat .lbl{
+    font-family:'Special Elite', monospace;
+    font-size:9.5px;
+    letter-spacing:1px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+  }
+  .dash-log{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .log-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:#fff;
+    border:1px solid var(--manila-dark);
+    border-left-width:5px;
+    border-radius:6px;
+    padding:10px 12px;
+  }
+  .log-row.approved{border-left-color:var(--approved);}
+  .log-row.denied{border-left-color:var(--denied);}
+  .log-row .log-n{
+    font-family:'Anton', sans-serif;
+    font-size:16px;
+    color:var(--navy-dark);
+    min-width:28px;
+  }
+  .log-row .log-mid{flex:1;}
+  .log-row .log-status{
+    font-family:'Archivo', sans-serif;
+    font-weight:800;
+    font-size:12px;
+  }
+  .log-row.approved .log-status{color:var(--approved-dark);}
+  .log-row.denied .log-status{color:var(--denied-dark);}
+  .log-row .log-time{
+    font-family:'Special Elite', monospace;
+    font-size:10.5px;
+    color:var(--ink-soft);
+  }
+  .dash-empty{
+    font-family:'Special Elite', monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    text-align:center;
+    padding:30px 10px;
+  }
+  .dash-refresh{
+    display:block;
+    margin:18px auto 0;
+    background:var(--navy);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:10px 18px;
+    font-family:'Special Elite', monospace;
+    font-size:11px;
+    letter-spacing:1px;
+    cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <span class="confidential-tag">Confidential</span>
+    <span class="eyebrow" id="secret-trigger">📋 Dept. of Weekend Affairs</span>
+    <h1>The Official 1–42<br>Truth Audit</h1>
+    <div class="subtitle">Mandatory Pre-Weekend Background Check</div>
+  </header>
+
+  <div class="memo">
+    <b>MEMORANDUM:</b> Management requires you to clear 5 Truth Audits to unlock your weekend clearance. Select a file (1–42) to begin.
+  </div>
+
+  <div class="progress-wrap">
+    <div>
+      <div class="progress-label">Audits Cleared</div>
+      <div class="progress-count"><span id="count">0</span> / 5</div>
+    </div>
+    <div class="progress-dots" id="dots">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- LIVE DASHBOARD (only shown at ?admin=1) -->
+<div class="dash" id="dash" style="display:none;">
+  <div class="dash-header">
+    <span class="eyebrow">📊 Internal Use Only</span>
+    <h1>Live Audit Log</h1>
+    <div class="dash-note" id="dash-sync-note">Syncing…</div>
+  </div>
+  <div class="dash-summary">
+    <div class="stat approved"><div class="num" id="dash-approved">0</div><div class="lbl">Approved</div></div>
+    <div class="stat denied"><div class="num" id="dash-denied">0</div><div class="lbl">Denied</div></div>
+    <div class="stat pending"><div class="num" id="dash-pending">42</div><div class="lbl">Untouched</div></div>
+  </div>
+  <div class="dash-log" id="dash-log">
+    <div class="dash-empty">No files opened yet. This updates automatically.</div>
+  </div>
+  <button class="dash-refresh" id="dash-refresh">Refresh now</button>
+  <button class="dash-refresh" id="dash-back" style="background:transparent;color:var(--navy);border:1.5px solid var(--navy);margin-top:8px;">← Back to files</button>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="case-file">
+    <div class="case-tab">
+      <span>CASE FILE <span class="file-no" id="modal-file-no">#00</span></span>
+      <span>TRUTH AUDIT</span>
+    </div>
+    <div class="case-body">
+      <span class="label">Sworn statement required</span>
+      <div class="question-text" id="modal-question">Question loading...</div>
+      <div class="btn-row">
+        <button class="btn btn-approve" id="btn-approve">✅ I texted my answer</button>
+        <button class="btn btn-deny" id="btn-deny">🚫 Plead the Fifth / Refuse</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">Penalty added: You owe management one coffee.</div>
+
+<!-- WIN SCREEN -->
+<div class="win-overlay" id="win-overlay">
+  <canvas id="confetti-canvas"></canvas>
+  <div class="win-stamp">Clearance<br>Granted</div>
+  <div class="win-text">
+    AUDIT PASSED. Your reward: <b>coffee or lunch with me this weekend.</b><br><br>
+    Take a screenshot of this and send it to claim your prize.
+  </div>
+  <button class="reset-btn" id="reset-btn">Run another audit</button>
+</div>
+
+<script>
+ 
+(function(){
+  "use strict";
+
+  // Import the functions you need from the SDKs you need
+  const QUESTIONS = [
+    "What's your go-to karaoke song, no judgment?",
+    "Tea or coffee — and how do you take it?",
+    "What's the last show you binge-watched in one sitting?",
+    "Window seat or aisle seat, and why?",
+    "What's a food you pretend to like but secretly don't?",
+    "If we went on a spontaneous road trip right now, where would you want to go?",
+    "What's your most-used emoji lately?",
+    "Early bird or night owl?",
+    "What's a song that instantly puts you in a good mood?",
+    "Beach vacation or mountain cabin?",
+    "What's the first thing you notice about someone?",
+    "If you could have any superpower for a day, what would you pick?",
+    "What's your comfort movie you could watch on repeat?",
+    "Do you have a hidden talent nobody knows about?",
+    "What's your ideal lazy Sunday look like?",
+    "Sweet, salty, or spicy snacks?",
+    "What's a small thing that instantly makes your day better?",
+    "If you could teleport anywhere for dinner tonight, where would you go?",
+    "What's the best compliment you've ever received?",
+    "Are you more of a planner or a 'let's wing it' person?",
+    "What's a hobby you'd love to pick up if you had more time?",
+    "What's your favorite way to spend a Friday night?",
+    "Do you believe in love at first sight, or is it just really good eye contact?",
+    "What's a song you'd want playing during a slow dance?",
+    "What's the most spontaneous thing you've ever done?",
+    "If we were stuck in an elevator, what would we talk about?",
+    "What's your love language, honestly?",
+    "What's a place you've never been but really want to visit?",
+    "Do you prefer texting or calling, and why?",
+    "What's your go-to order at a coffee shop?",
+    "What's a movie you could watch for the plot alone... or maybe not just the plot?",
+    "What's something that instantly makes you laugh?",
+    "If you had to describe your personality in three emojis, what would they be?",
+    "What's your idea of a perfect first date?",
+    "Do you have a type, or does it change every time?",
+    "What's a song lyric that feels like it was written about you?",
+    "What's the boldest thing you've ever said to someone you liked?",
+    "Would you rather get flowers or a handwritten note?",
+    "What's something you find unexpectedly attractive in a person?",
+    "What's your go-to move to break the ice with someone new?",
+    "If this audit had a soundtrack, what song would be playing right now?",
+    "Last question: what's something you've been wanting to tell me?"
+  ];
+
+  // shuffle a copy of the questions so each file number gets a fixed,
+  // non-repeating question for this session
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // ================================================================
+  // BACKEND CONFIG — REQUIRED FOR LIVE SYNC
+  // ================================================================
+  // 1. Go to https://console.firebase.google.com → Add project (free).
+  // 2. In the project: Build → Realtime Database → Create Database
+  //    (start in "test mode" is fine for this).
+  // 3. Project settings (gear icon) → General → scroll to "Your apps"
+  //    → Add app → Web (</>) → register it (no hosting needed) →
+  //    copy the firebaseConfig object it gives you and paste it below,
+  //    replacing the placeholder values.
+  // 4. In Realtime Database → Rules, use:
+  //      { "rules": { "audit-log": { ".read": true, ".write": true } } }
+  //    (Open rules are fine for a casual game like this — it just
+  //    means anyone with your database URL could read/write that one
+  //    path. Don't reuse this database for anything sensitive.)
+  // ================================================================
+    const firebaseConfig = {
+    apiKey: "AIzaSyAITvoQMbkBuoJ2USX8jqOIczsepz_RmOo",
+    authDomain: "truth-audit.firebaseapp.com",
+    databaseURL: "https://truth-audit-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "truth-audit",
+    storageBucket: "truth-audit.firebasestorage.app",
+    messagingSenderId: "80008930086",
+    appId: "1:80008930086:web:c85415dbb88fb658e097e7",
+    measurementId: "G-VSZ08EGQER"
+  };
+
+  const shuffledQuestions = shuffle(QUESTIONS);
+  const fileQuestion = {}; // number -> question text
+  for(let n = 1; n <= 42; n++){
+    fileQuestion[n] = shuffledQuestions[n - 1];
+  }
+
+  const state = {
+    approved: 0,
+    tileStatus: {}, // number -> 'approved' | 'denied'
+    activeFile: null
+  };
+
+  // ---------- SHARED LIVE-SYNC BACKEND (Firebase Realtime Database) ----------
+  let fbReady = false;
+  let db = null;
+  let latestLog = {};
+  let dashListenerAttached = false;
+
+  function configLooksFilledIn(){
+    return firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY";
+  }
+
+  function initBackend(){
+    if(!configLooksFilledIn()) return;
+    try{
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+      fbReady = true;
+    }catch(e){
+      console.error('Firebase init failed:', e);
+      fbReady = false;
+    }
+  }
+
+  function logEvent(n, status){
+    if(!fbReady) return;
+    db.ref('audit-log/' + n).set({
+      status,
+      time: firebase.database.ServerValue.TIMESTAMP
+    }).catch(e => console.error('Live sync write failed:', e));
+  }
+
+  function attachDashboardListener(onUpdate){
+    if(!fbReady || dashListenerAttached) return;
+    dashListenerAttached = true;
+    db.ref('audit-log').on('value', snap => {
+      latestLog = snap.val() || {};
+      onUpdate();
+    }, e => console.error('Live sync read failed:', e));
+  }
+
+  initBackend();
+
+  const grid = document.getElementById('grid');
+  const overlay = document.getElementById('overlay');
+  const modalFileNo = document.getElementById('modal-file-no');
+  const modalQuestion = document.getElementById('modal-question');
+  const btnApprove = document.getElementById('btn-approve');
+  const btnDeny = document.getElementById('btn-deny');
+  const toast = document.getElementById('toast');
+  const countEl = document.getElementById('count');
+  const dots = document.querySelectorAll('#dots span');
+  const winOverlay = document.getElementById('win-overlay');
+  const resetBtn = document.getElementById('reset-btn');
+
+  let toastTimer = null;
+
+  function buildGrid(){
+    grid.innerHTML = '';
+    for(let n = 1; n <= 42; n++){
+      const tile = document.createElement('button');
+      tile.className = 'tile';
+      tile.type = 'button';
+      tile.textContent = n;
+      tile.dataset.n = n;
+      tile.setAttribute('aria-label', 'Open case file ' + n);
+      tile.addEventListener('click', () => openFile(n));
+      grid.appendChild(tile);
+    }
+  }
+
+  function openFile(n){
+    if(state.tileStatus[n]) return; // already resolved
+    state.activeFile = n;
+    modalFileNo.textContent = '#' + String(n).padStart(2, '0');
+    modalQuestion.textContent = fileQuestion[n];
+    overlay.classList.add('show');
+  }
+
+  function closeModal(){
+    overlay.classList.remove('show');
+    state.activeFile = null;
+  }
+
+  function paintTile(n, status){
+    const tile = grid.querySelector('.tile[data-n="' + n + '"]');
+    if(!tile) return;
+    tile.classList.add(status);
+    tile.innerHTML = '';
+    const mark = document.createElement('span');
+    mark.className = 'stamp-mark';
+    mark.textContent = status === 'approved' ? 'CLEAR' : 'DENIED';
+    tile.appendChild(mark);
+  }
+
+  function updateProgress(){
+    countEl.textContent = state.approved;
+    dots.forEach((d, i) => {
+      d.classList.toggle('filled', i < state.approved);
+    });
+  }
+
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  btnApprove.addEventListener('click', () => {
+    const n = state.activeFile;
+    if(n == null) return;
+    state.tileStatus[n] = 'approved';
+    state.approved++;
+    paintTile(n, 'approved');
+    updateProgress();
+    closeModal();
+    logEvent(n, 'approved');
+    if(state.approved >= 5){
+      setTimeout(showWin, 300);
+    }
+  });
+
+  btnDeny.addEventListener('click', () => {
+    const n = state.activeFile;
+    if(n == null) return;
+    state.tileStatus[n] = 'denied';
+    paintTile(n, 'denied');
+    closeModal();
+    logEvent(n, 'denied');
+    showToast('Penalty added: You owe management one coffee.');
+  });
+
+  overlay.addEventListener('click', (e) => {
+    if(e.target === overlay) closeModal();
+  });
+
+  // ---------- CONFETTI ----------
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  let confettiPieces = [];
+  let confettiRunning = false;
+  const confettiColors = ['#D4A017', '#1E8E5A', '#C23B32', '#ffffff', '#2B4C7E'];
+
+  function resizeCanvas(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  function makeConfetti(){
+    resizeCanvas();
+    confettiPieces = [];
+    const count = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 90;
+    for(let i = 0; i < count; i++){
+      confettiPieces.push({
+        x: Math.random() * canvas.width,
+        y: -20 - Math.random() * canvas.height * 0.5,
+        w: 6 + Math.random() * 6,
+        h: 8 + Math.random() * 8,
+        color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+        vy: 2 + Math.random() * 3,
+        vx: -1.5 + Math.random() * 3,
+        rot: Math.random() * 360,
+        vr: -6 + Math.random() * 12
+      });
+    }
+  }
+
+  function drawConfetti(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    confettiPieces.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.vr;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+    confettiPieces = confettiPieces.filter(p => p.y < canvas.height + 30);
+    if(confettiRunning && confettiPieces.length > 0){
+      requestAnimationFrame(drawConfetti);
+    } else if(confettiRunning){
+      // keep a light trickle going for a bit
+      confettiRunning = false;
+    }
+  }
+
+  function showWin(){
+    winOverlay.classList.add('show');
+    makeConfetti();
+    confettiRunning = true;
+    requestAnimationFrame(drawConfetti);
+  }
+
+  resetBtn.addEventListener('click', () => {
+    state.approved = 0;
+    state.tileStatus = {};
+    updateProgress();
+    winOverlay.classList.remove('show');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    buildGrid();
+    window.scrollTo(0, 0);
+  });
+
+  // ---------- DASHBOARD MODE ----------
+  function isAdminView(){
+    return new URLSearchParams(window.location.search).get('admin') === '1';
+  }
+
+  function timeAgo(ts){
+    if(!ts) return 'just now';
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if(s < 60) return s + 's ago';
+    const m = Math.floor(s / 60);
+    if(m < 60) return m + 'm ago';
+    const h = Math.floor(m / 60);
+    return h + 'h ago';
+  }
+
+  function renderDashboard(){
+    const syncNote = document.getElementById('dash-sync-note');
+    const logEl = document.getElementById('dash-log');
+    const approvedEl = document.getElementById('dash-approved');
+    const deniedEl = document.getElementById('dash-denied');
+    const pendingEl = document.getElementById('dash-pending');
+
+    if(!configLooksFilledIn()){
+      syncNote.textContent = 'Backend not configured yet — paste your Firebase config near the top of the script.';
+      return;
+    }
+    if(!fbReady){
+      syncNote.textContent = 'Could not connect to the live backend. Check your Firebase config and database rules.';
+      return;
+    }
+
+    const entries = Object.keys(latestLog).map(n => ({ n: Number(n), ...latestLog[n] }))
+      .sort((a, b) => (b.time || 0) - (a.time || 0));
+
+    const approvedCount = entries.filter(e => e.status === 'approved').length;
+    const deniedCount = entries.filter(e => e.status === 'denied').length;
+
+    approvedEl.textContent = approvedCount;
+    deniedEl.textContent = deniedCount;
+    pendingEl.textContent = 42 - entries.length;
+    syncNote.textContent = 'Live — updates instantly as files are opened.';
+
+    if(entries.length === 0){
+      logEl.innerHTML = '<div class="dash-empty">No files opened yet. This updates automatically.</div>';
+      return;
+    }
+
+    logEl.innerHTML = entries.map(e => `
+      <div class="log-row ${e.status}">
+        <div class="log-n">#${String(e.n).padStart(2,'0')}</div>
+        <div class="log-mid">
+          <div class="log-status">${e.status === 'approved' ? 'Answered' : 'Refused'}</div>
+          <div class="log-time">${timeAgo(e.time)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function showDashboard(){
+    document.querySelector('.app').style.display = 'none';
+    initDashboardOnce();
+    document.getElementById('dash').style.display = 'block';
+    renderDashboard();
+  }
+
+  function hideDashboard(){
+    document.getElementById('dash').style.display = 'none';
+    document.querySelector('.app').style.display = 'block';
+  }
+
+  let dashInitialized = false;
+  function initDashboardOnce(){
+    if(dashInitialized) return;
+    dashInitialized = true;
+    document.getElementById('dash-refresh').addEventListener('click', renderDashboard);
+    document.getElementById('dash-back').addEventListener('click', hideDashboard);
+    attachDashboardListener(renderDashboard);
+  }
+
+  // Secret trigger: tap the header eyebrow 5 times within 3 seconds
+  // to reveal the live dashboard on whatever device you're using —
+  // this works regardless of whether the hosting page forwards URL
+  // query params down into this content.
+  (function setupSecretTrigger(){
+    const trigger = document.getElementById('secret-trigger');
+    if(!trigger) return;
+    let taps = 0;
+    let resetTimer = null;
+    trigger.addEventListener('click', () => {
+      taps++;
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { taps = 0; }, 3000);
+      if(taps >= 5){
+        taps = 0;
+        showDashboard();
+      }
+    });
+  })();
+
+  // ---------- ENTRY POINT ----------
+  buildGrid();
+  updateProgress();
+  if(isAdminView()){
+    showDashboard();
+  }
+})();
+</script>
+
+</body>
+</html>
