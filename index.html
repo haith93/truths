@@ -499,6 +499,13 @@
     font-size:10.5px;
     color:var(--ink-soft);
   }
+  .log-row .log-question{
+    font-family:'Archivo', sans-serif;
+    font-size:12px;
+    color:var(--ink);
+    margin-top:3px;
+    line-height:1.3;
+  }
   .dash-empty{
     font-family:'Special Elite', monospace;
     font-size:12.5px;
@@ -596,7 +603,7 @@
   <canvas id="confetti-canvas"></canvas>
   <div class="win-stamp">Clearance<br>Granted</div>
   <div class="win-text">
-    AUDIT PASSED. Your reward: <b>coffee or lunch with me this weekend.</b><br><br>
+    AUDIT PASSED. Your reward: <b id="win-prize">coffee or lunch with me this weekend.</b><br><br>
     Take a screenshot of this and send it to claim your prize.
   </div>
   <button class="reset-btn" id="reset-btn">Run another audit</button>
@@ -611,45 +618,45 @@
   const QUESTIONS = [
     "Would you rather cook a meal together or get takeout and just talk?",
     "Tea or coffee — and how do you take it?",
-    "What's the last show you binge-watched in one sitting?",
-    "Window seat or aisle seat, and why?",
+    "Do you fall fast, or take your time getting attached to someone?",
+    "What's a green flag you notice early on with someone?",
     "What's a food you pretend to like but secretly don't?",
-    "If we went on a spontaneous road trip right now, where would you want to go?",
+    "What's something small that makes a person instantly more attractive to you?",
     "What's your most-used emoji lately?",
-    "What's a compliment you'd want to hear more often?",
-    "What's a song that instantly puts you in a good mood?",
-    "Beach vacation or mountain cabin?",
+    "If you could relive one day exactly as it happened, which would you pick?",
+    "What's a habit of yours you secretly think is kind of charming?",
+    "What's something you find yourself thinking about right before you fall asleep?",
     "What's the first thing you notice about someone?",
     "If you could have any superpower for a day, what would you pick?",
-    "What's your comfort movie you could watch on repeat?",
+    "What's a text you've drafted and never actually sent?",
     "Do you have a hidden talent nobody knows about?",
     "What's your ideal lazy Sunday look like?",
     "Sweet, salty, or spicy snacks?",
     "What's a small thing that instantly makes your day better?",
-    "If you could teleport anywhere for dinner tonight, where would you go?",
-    "What's the best compliment you've ever received?",
+    "If you could teleport anywhere tonight, where would you go?",
+    "What's the best piece of advice you've ever ignored?",
     "Are you more of a planner or a 'let's wing it' person?",
     "What's a hobby you'd love to pick up if you had more time?",
     "What's your favorite way to spend a Friday night?",
     "Do you believe in love at first sight, or is it just really good eye contact?",
     "What's a song you'd want playing during a slow dance?",
-    "What's the most spontaneous thing you've ever done?",
-    "If we were stuck in an elevator, what would we talk about?",
+    "If you had a completely free day with zero responsibilities, what would you actually do?",
+    "What's something you're weirdly competitive about?",
     "What's your love language, honestly?",
     "What's a place you've never been but really want to visit?",
-    "Do you prefer texting or calling, and why?",
+    "What's a place that instantly feels like home to you?",
     "What's your go-to order at a coffee shop?",
-    "What's a movie you could watch for the plot alone... or maybe not just the plot?",
-    "What's something that instantly makes you laugh?",
+    "What's the last thing you got way too excited about?",
+    "Morning person, or someone who needs three alarms?",
     "If you had to describe your personality in three emojis, what would they be?",
     "What's your idea of a perfect first date?",
     "Do you have a type, or does it change every time?",
-    "What's a song lyric that feels like it was written about you?",
+    "What's a small tradition or ritual you have just for yourself?",
     "What's the boldest thing you've ever said to someone you liked?",
     "What's something you find charming that most people overlook?",
     "What's something you find unexpectedly attractive in a person?",
-    "What's a random fact about you that surprises people?",
-    "If this audit had a soundtrack, what song would be playing right now?",
+    "What's your go-to comfort food when you've had a rough day?",
+    "If you could instantly master any skill, what would it be?",
     "Last question: what's something you've been wanting to tell me?"
   ];
 
@@ -720,18 +727,20 @@
   }
 
   const saved = loadSave();
-  let fileQuestion, state;
 
+  // Fixed mapping: file #N always shows QUESTIONS[N-1], on every device,
+  // every time — regardless of what any older save might contain. This
+  // is what makes the same number show the same question for both of you.
+  const fileQuestion = {};
+  for(let n = 1; n <= 42; n++){ fileQuestion[n] = QUESTIONS[n - 1]; }
+
+  let state;
   // A finished game (5 approved) never gets restored — it auto-resets
   // to a fresh board instead, per your "auto reset when finished" ask.
   if(saved && saved.approved < 5){
-    fileQuestion = saved.fileQuestion;
     state = { approved: saved.approved, tileStatus: saved.tileStatus, activeFile: null };
   }else{
     clearSave();
-    const shuffledQuestions = shuffle(QUESTIONS);
-    fileQuestion = {};
-    for(let n = 1; n <= 42; n++){ fileQuestion[n] = shuffledQuestions[n - 1]; }
     state = { approved: 0, tileStatus: {}, activeFile: null };
   }
   // ---------- SHARED LIVE-SYNC BACKEND (Firebase Realtime Database) ----------
@@ -760,6 +769,7 @@
     if(!fbReady) return;
     db.ref('audit-log/' + n).set({
       status,
+      question: fileQuestion[n],
       time: firebase.database.ServerValue.TIMESTAMP
     }).catch(e => console.error('Live sync write failed:', e));
   }
@@ -929,8 +939,21 @@
     }
   }
 
+  const PRIZES = [
+    "coffee or lunch with me this weekend.",
+    "a movie night, your pick of movie.",
+    "a home-cooked meal, my treat.",
+    "a long walk and unlimited snacks, on me.",
+    "a game night — winner picks the next date.",
+    "dessert first, dinner after — my rules."
+  ];
+
   function showWin(){
     clearSave();
+    const prizeEl = document.getElementById('win-prize');
+    if(prizeEl){
+      prizeEl.textContent = PRIZES[Math.floor(Math.random() * PRIZES.length)];
+    }
     winOverlay.classList.add('show');
     makeConfetti();
     confettiRunning = true;
@@ -1000,6 +1023,7 @@
         <div class="log-n">#${String(e.n).padStart(2,'0')}</div>
         <div class="log-mid">
           <div class="log-status">${e.status === 'approved' ? 'Answered' : 'Refused'}</div>
+          <div class="log-question">${e.question || fileQuestion[e.n] || ''}</div>
           <div class="log-time">${timeAgo(e.time)}</div>
         </div>
       </div>
